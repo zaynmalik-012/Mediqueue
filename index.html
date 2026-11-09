@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediQueue – Hospital OPD Waiting Time Predictor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand" onclick="navigateTo('home')">
+        <div class="logo-box">MQ</div>
+        <div>
+          <span class="brand-title">MediQueue</span>
+          <span class="brand-tagline">OPD Wait Time Predictor</span>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <button class="nav-btn active" id="nav-home" onclick="navigateTo('home')">Home</button>
+        <button class="nav-btn" id="nav-book" onclick="navigateTo('book')">Book Token</button>
+        <button class="nav-btn" id="nav-track" onclick="navigateTo('track')">Live Queue</button>
+        <button class="nav-btn" id="nav-patient" onclick="navigateTo('patient')">My Token</button>
+        <button class="nav-btn doctor-tag" id="nav-doctor" onclick="navigateTo('doctor')">Doctor Desk</button>
+      </nav>
+      <div class="auth-box" id="auth-header-actions"></div>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Main Views Container -->
+  <main class="content-container">
+
+    <!-- 1. HOME VIEW -->
+    <section id="view-home" class="view">
+      <div class="hero-card">
+        <span class="badge">Live OPD Queue Management System</span>
+        <h1>Avoid Crowded Hospital Waiting Rooms</h1>
+        <p class="hero-desc">
+          MediQueue predicts live consultation wait times across OPD departments, generates digital tokens with reserved 20-minute slots, and tracks queue status in real time.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" onclick="handleStartBooking()">Book OPD Token</button>
+          <button class="btn btn-secondary btn-lg" onclick="navigateTo('track')">Check Live Queue</button>
+        </div>
+      </div>
+
+      <div class="section-heading">
+        <h2>Hospital OPD Departments</h2>
+        <p>Live status and estimated consultation delays</p>
+      </div>
+
+      <div class="grid grid-3" id="home-dept-list"></div>
+
+      <div class="section-heading">
+        <h2>How MediQueue Works</h2>
+        <p>A simple 3-step digital queue system</p>
+      </div>
+
+      <div class="grid grid-3 steps-grid">
+        <div class="card step-card">
+          <div class="step-num">1</div>
+          <h3>Select & Reserve</h3>
+          <p>Register your account, choose your doctor, and lock a dedicated 20-minute consultation window.</p>
+        </div>
+        <div class="card step-card">
+          <div class="step-num">2</div>
+          <h3>Live Wait Prediction</h3>
+          <p>Monitor your token and patients ahead with continuously updating arrival times.</p>
+        </div>
+        <div class="card step-card">
+          <div class="step-num">3</div>
+          <h3>Direct Consultation</h3>
+          <p>Arrive right when your number is called, eliminating prolonged exposure in crowded waiting halls.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. BOOKING VIEW (20-Minute Slots with Slot Locking) -->
+    <section id="view-book" class="view hidden">
+      <div class="form-container">
+        <div class="form-header">
+          <h2>Book OPD Appointment Token</h2>
+          <p>Select your hospital department, doctor, and an available 20-minute consultation slot.</p>
+        </div>
+
+        <form id="booking-form" onsubmit="handleBookingSubmit(event)">
+          <div class="form-group">
+            <label>Hospital Location</label>
+            <select id="book-hospital" class="form-input" required>
+              <option value="City General Civil Hospital">City General Civil Hospital (Main OPD Block)</option>
+              <option value="Metro District Health Center">Metro District Health Center</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>OPD Department</label>
+              <select id="book-department" class="form-input" onchange="onDepartmentSelectChange()" required></select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Doctor / Specialist</label>
+              <select id="book-doctor" class="form-input" onchange="onDoctorOrDateChange()" required></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Appointment Date</label>
+              <input type="date" id="book-date" class="form-input" onchange="onDoctorOrDateChange()" required />
+            </div>
+            <div class="form-group flex-1">
+              <label>Preferred Time Slot (20 Mins)</label>
+              <select id="book-slot" class="form-input" required></select>
+              <span class="slot-hint">🔒 Once booked, this slot becomes unavailable to other patients.</span>
+            </div>
+          </div>
+
+          <!-- Doctor Queue Preview -->
+          <div class="preview-box" id="booking-preview-box">
+            <div>
+              <strong id="preview-doc-name">Dr. Selected</strong>
+              <div class="text-muted" id="preview-doc-dept">General Medicine</div>
+            </div>
+            <div class="preview-stats">
+              <span id="preview-doc-queue">0 Patients Waiting</span>
+              <span id="preview-doc-wait" class="highlight-wait">~0 Mins Estimated Wait</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Reason for Visit / Primary Symptoms (Optional)</label>
+            <input type="text" id="book-symptom" class="form-input" placeholder="e.g. Mild fever, persistent cough, joint ache" />
+          </div>
+
+          <button type="submit" id="btn-submit-booking" class="btn btn-primary btn-block btn-lg">
+            Confirm & Generate Token
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. LIVE QUEUE TRACKING -->
+    <section id="view-track" class="view hidden">
+      <div class="section-heading">
+        <h2>Live OPD Queue Board</h2>
+        <p>Real-time view of tokens currently consulting in each OPD room</p>
+      </div>
+      <div class="grid grid-3" id="queue-board-list"></div>
+    </section>
+
+    <!-- 4. PATIENT DASHBOARD / ACTIVE TOKEN -->
+    <section id="view-patient" class="view hidden">
+      <div id="patient-token-container"></div>
+    </section>
+
+    <!-- 5. DOCTOR DESK (PROTECTED) -->
+    <section id="view-doctor" class="view hidden">
+      <div id="doctor-view-container"></div>
+    </section>
+
+    <!-- 6. PATIENT AUTHENTICATION -->
+    <section id="view-auth" class="view hidden">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="tab-btn active" id="tab-login" onclick="switchAuthTab('login')">Patient Login</button>
+          <button class="tab-btn" id="tab-register" onclick="switchAuthTab('register')">Create New Account</button>
+        </div>
+
+        <form id="patient-login-form" onsubmit="handlePatientLogin(event)">
+          <div class="form-group">
+            <label>Phone Number or Email</label>
+            <input type="text" id="login-identifier" class="form-input" placeholder="e.g. 9876543210 or user@email.com" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Enter password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Log In</button>
+        </form>
+
+        <form id="patient-register-form" class="hidden" onsubmit="handlePatientRegister(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Age</label>
+              <input type="number" id="reg-age" class="form-input" placeholder="24" min="1" max="120" required />
+            </div>
+            <div class="form-group flex-1">
+              <label>Gender</label>
+              <select id="reg-gender" class="form-input" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="reg-phone" class="form-input" placeholder="10-digit mobile number" pattern="[0-9]{10}" required />
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="patient@example.com" required />
+          </div>
+          <div class="form-group">
+            <label>Create Password</label>
+            <input type="password" id="reg-password" class="form-input" placeholder="At least 6 characters" minlength="6" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Register Patient Account</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Emergency & Casualty Section with Contact Numbers and EMO Doctors List -->
+  <div class="emergency-bar">
+    <div class="emergency-inner">
+      <div class="emergency-header">
+        <span class="emergency-tag">24/7 CASUALTY & EMERGENCY CARE</span>
+        <div class="emergency-hotlines">
+          <span>Ambulance: <a href="tel:108"><strong>108</strong></a></span>
+          <span>National Emergency: <a href="tel:112"><strong>112</strong></a></span>
+          <span>Hospital Casualty Desk: <a href="tel:02224107000"><strong>022-2410-7000</strong></a></span>
+        </div>
+      </div>
+      <p style="margin-bottom: 1rem;">
+        Unstable conditions (acute chest pain, severe bleeding, trauma, respiratory arrest, loss of consciousness) must bypass regular OPD queues. Reach the Ground Floor Casualty Ward immediately or contact the on-duty emergency physicians below:
+      </p>
+
+      <!-- List of On-Duty Emergency Doctors -->
+      <div class="emergency-doc-grid" id="emergency-doctors-list"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div>
+        <strong>MediQueue</strong> – Real-time Hospital OPD Token & Wait Time Prediction Prototype.
+      </div>
+      <div class="footer-sub">
+        College Hackathon Frontend Demo • LocalStorage Enabled
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
