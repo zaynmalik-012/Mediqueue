@@ -1,3 +1,4 @@
+developed by zayn
 ## 🏥 About The Project
 
 **MediQueue** is a lightweight, responsive web application designed to eliminate overcrowded waiting rooms and unpredictable delays in hospital Outpatient Departments (OPD). 
